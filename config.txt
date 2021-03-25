@@ -1,3 +1,7 @@
 # The below is the list of agencies to extract the detailed information
+  # It has not be very neat, spaces and comments are allowed.
+
 National Science Foundation
-  
+  Department of Agriculture
+# Example of Agency not present on site:
+  Food and Drug Administration

@@ -6,15 +6,14 @@ from RPA.Browser.Selenium import Selenium
 from RPA.Desktop import Desktop
 from RPA.Excel.Files import Files
 from RPA.FileSystem import FileSystem
-#from RPA.HTTP import HTTP
 from RPA.Tables import Tables
 
 
 # ===== the below parameters can be changed =====
 WORKBOOK_NAME = 'workbook.xlsx'
 SHEET_GENERAL = 'Agencies'
-BOT_TASK = os.path.join('src', 'config.txt')
-OUTPUT_DIR = os.path.join('src','output')
+BOT_TASK = 'config.txt'
+OUTPUT_DIR = os.path.join(os.getcwd(), 'output')
 
 # ===== Do not change the following below =======
 BASE_URL = "https://itdashboard.gov/"
@@ -58,7 +57,6 @@ def get_extended_info(item):
         acronym += word[0]
     files.open_workbook(os.path.join(OUTPUT_DIR, WORKBOOK_NAME))
     update_excel(acronym, column_list, WORKBOOK_NAME)
-    browser.set_download_directory(os.path.join(os.getcwd(), OUTPUT_DIR, acronym), download_pdf=True)
 
     uii_links = []
     uii_list = browser.get_webelements(INVESTMENT_UII)
@@ -73,7 +71,8 @@ def get_extended_info(item):
         browser.wait_until_element_is_not_visible(GEN_TEXT)
         time.sleep(7)
         
-    time.sleep(5)  # to finish downloading before closing the browser
+    time.sleep(5)  # to finish all downloads before closing the browser
+
 
 
 def get_agencies_info():
@@ -94,6 +93,8 @@ def get_agencies_info():
     files.create_workbook()
     update_excel(SHEET_GENERAL, agencies_table, WORKBOOK_NAME)
 
+    return agencies_list
+
 
 def update_excel(sheet_name, table_name, file_name):
     files.create_worksheet(sheet_name)
@@ -107,37 +108,38 @@ def main():
         print ("Output directory was not found and will be created")
         os.makedirs(OUTPUT_DIR)
 
-    #browser.set_download_directory(os.path.join(os.getcwd(), OUTPUT_DIR), download_pdf=True)
+    browser.set_download_directory(OUTPUT_DIR, download_pdf=True)
     browser.open_available_browser(BASE_URL, maximized=True)
     browser.wait_until_element_is_visible(AGENCY_TITLES)
-    # extract summary data on agecies and spending
-    get_agencies_info()
+    # extract summary data on agencies and spending
+    agencies = get_agencies_info()
     # extract the data on particular agency and add to the Excel file
     with open(BOT_TASK, "r") as f:
         for line in f:
             stripped_line = line.strip()
             if stripped_line:
                 if not re.match(r'(^(\s+)?#)', stripped_line):
-                    # browser.open_available_browser(BASE_URL, maximized=True)
-                    browser.go_to(BASE_URL)
-                    browser.wait_until_element_is_visible(AGENCY_TITLES)
-                    get_extended_info(stripped_line)
+                    if stripped_line in agencies:
+                        browser.go_to(BASE_URL)
+                        browser.wait_until_element_is_visible(AGENCY_TITLES)
+                        get_extended_info(stripped_line)
+                    else:
+                        print("The agency '%s' was not found in the list" % stripped_line)
+
 
     print('Done')
 
 
 if __name__ == "__main__":
-    
+    # the below preferences might be required depending on browser saving settings
     prefs = {
-        "download.default_directory": os.path.join(os.getcwd(), OUTPUT_DIR),
+        "download.default_directory": OUTPUT_DIR,
         "download.prompt_for_download": False,
         "download.directory_upgrade": True
     }
-
     browser = Selenium()
     desktop = Desktop()
     tables = Tables() 
     files = Files()
-    #http = HTTP()
     main()
     
