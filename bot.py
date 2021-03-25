@@ -28,7 +28,7 @@ def get_extended_info(item):
     TABLE_OBJECT_NEXT = "css:#investments-table-object_next.paginate_button.next.disabled"
     INVESTMENT_DROPDOWN = "css:select.form-control:nth-child(1)"
     INVESTMENT_SHOW_ALL = "css:select.form-control:nth-child(1) > option:last-child"
-    TABLE_HEADERS = "css:.dataTables_scrollHeadInner > table > thead > tr:nth-child(2) > th"
+    TABLE_HEADER = "css:.dataTables_scrollHeadInner > table > thead > tr:nth-child(2)"
     TABLE_ROWS = "css:#investments-table-object.datasource-table.usa-table-borderless.dataTable.no-footer tbody tr"
     INVESTMENT_UII = "css:tr > td > a"
     # DOWNLOAD_ELEMENT = "#business-case-pdf > a"
@@ -42,21 +42,17 @@ def get_extended_info(item):
     browser.click_element(INVESTMENT_SHOW_ALL)
     browser.wait_until_element_is_visible(TABLE_OBJECT_NEXT, timeout=15)
 
-    column_list = []
-    rows = browser.get_element_count(TABLE_ROWS)
-    columns = browser.get_element_count(TABLE_HEADERS)
-    for i in range(rows):
-        rows_list = []
-        for j in range(columns):
-            get_cell = browser.get_table_cell(INVESTMENTS_TABLE, row=i+3, column=j+1)
-            rows_list.append(get_cell)
-        column_list.append(rows_list)
-
+    table_data = []
+    for i in browser.get_webelements(TABLE_HEADER):
+        table_data.append(re.sub(r"\['|']|\\n\\r", "", i.get_attribute('innerText'), flags=re.MULTILINE).split('\t'))
+    for i in browser.get_webelements(TABLE_ROWS):
+        table_data.append(re.sub(r"\['|']|\\n\\r", "", i.get_attribute('innerText'), flags=re.MULTILINE).split('\t')) 
+    
     acronym = ''
     for word in item.split():
         acronym += word[0]
     files.open_workbook(os.path.join(OUTPUT_DIR, WORKBOOK_NAME))
-    update_excel(acronym, column_list, WORKBOOK_NAME)
+    update_excel(acronym, table_data, WORKBOOK_NAME)
 
     uii_links = []
     uii_list = browser.get_webelements(INVESTMENT_UII)
@@ -125,6 +121,8 @@ def main():
                         get_extended_info(stripped_line)
                     else:
                         print("The agency '%s' was not found in the list" % stripped_line)
+
+    # analysing downloaded PDF files and extract the data
 
 
     print('Done')
